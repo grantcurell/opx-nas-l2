@@ -18,7 +18,7 @@
  * nas_hash_cps.c
  */
 
-#include "dell-base-hash.h"
+#include "dell-base-switch-element.h"
 #include "event_log.h"
 #include "event_log_types.h"
 #include "cps_api_object_key.h"
@@ -31,10 +31,10 @@
 
 
 static cps_api_return_code_t nas_hash_set (uint32_t traffic,
-                                           BASE_TRAFFIC_HASH_ENTRY_t attr,
+                                           BASE_SWITCH_ENTRY_t attr,
                                            cps_api_object_t obj)
 {
-    uint32_t              lst[BASE_TRAFFIC_HASH_FIELD_MAX];
+    uint32_t              lst[BASE_SWITCH_FIELD_MAX];
     size_t                ix = 0;
     cps_api_object_it_t   it;
     t_std_error           rc = STD_ERR_OK;
@@ -46,13 +46,13 @@ static cps_api_return_code_t nas_hash_set (uint32_t traffic,
     memset(lst, 0, sizeof(lst));
 
     for (cps_api_object_it_begin(obj, &it);
-         cps_api_object_it_attr_walk(&it, BASE_TRAFFIC_HASH_ENTRY_STD_HASH_FIELD)
+         cps_api_object_it_attr_walk(&it, BASE_SWITCH_ENTRY_STD_HASH_FIELD)
              && (ix < (sizeof(lst)/sizeof(*lst)));
          cps_api_object_it_next(&it)) {
         lst[ix++] = cps_api_object_attr_data_u32(it.attr);
     }
 
-    rc = nas_ndi_set_hash_obj(traffic, BASE_TRAFFIC_HASH_FIELD_MAX, lst);
+    rc = nas_ndi_set_hash_obj(traffic, BASE_SWITCH_FIELD_MAX, lst);
     if (rc != STD_ERR_OK) {
         return((cps_api_return_code_t) rc);
     }
@@ -73,7 +73,7 @@ static cps_api_return_code_t nas_cps_set_hash (cps_api_object_t obj)
     /*
      * Valid SET request?
      */
-    attr = cps_api_get_key_data(obj, BASE_TRAFFIC_HASH_ENTRY_OBJ_TYPE);
+    attr = cps_api_get_key_data(obj, BASE_SWITCH_ENTRY_OBJ_TYPE);
     if (attr == NULL) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH",
                    "Can't get traffic type for SET");
@@ -85,8 +85,8 @@ static cps_api_return_code_t nas_cps_set_hash (cps_api_object_t obj)
      */
     traffic = cps_api_object_attr_data_u32(attr);
 
-    if ((traffic < BASE_TRAFFIC_HASH_TRAFFIC_MIN)
-        || (traffic > BASE_TRAFFIC_HASH_TRAFFIC_MAX)) {
+    if ((traffic < BASE_SWITCH_TRAFFIC_MIN)
+        || (traffic > BASE_SWITCH_TRAFFIC_MAX)) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH",
                    "Invalid traffic type %d for SET",
                    (int) traffic);
@@ -96,7 +96,7 @@ static cps_api_return_code_t nas_cps_set_hash (cps_api_object_t obj)
     /*
      * Proceed to extract the arguments
      */
-    rc = nas_hash_set(traffic, BASE_TRAFFIC_HASH_ENTRY_STD_HASH_FIELD, obj);
+    rc = nas_hash_set(traffic, BASE_SWITCH_ENTRY_STD_HASH_FIELD, obj);
     if (rc != cps_api_ret_code_OK) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH", "SET failed");
         return cps_api_ret_code_ERR;
@@ -130,7 +130,7 @@ static cps_api_return_code_t nas_process_cps_hash_get (void *context,
     cps_api_object_t      filter;
     cps_api_object_attr_t attr;
     t_std_error           rc = STD_ERR_OK;
-    uint32_t              std_list[BASE_TRAFFIC_HASH_FIELD_MAX];
+    uint32_t              std_list[BASE_SWITCH_FIELD_MAX];
     uint32_t              std_count = 0;
     uint64_t              traffic;
 
@@ -139,7 +139,7 @@ static cps_api_return_code_t nas_process_cps_hash_get (void *context,
     /*
      * Valid GET request?
      */
-    attr = cps_api_get_key_data(filter, BASE_TRAFFIC_HASH_ENTRY_OBJ_TYPE);
+    attr = cps_api_get_key_data(filter, BASE_SWITCH_ENTRY_OBJ_TYPE);
     if (attr == NULL) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH",
                    "Can't get traffic type for GET");
@@ -151,8 +151,8 @@ static cps_api_return_code_t nas_process_cps_hash_get (void *context,
      */
     traffic = cps_api_object_attr_data_u32(attr);
 
-    if ((traffic < BASE_TRAFFIC_HASH_TRAFFIC_MIN)
-        || (traffic > BASE_TRAFFIC_HASH_TRAFFIC_MAX)) {
+    if ((traffic < BASE_SWITCH_TRAFFIC_MIN)
+        || (traffic > BASE_SWITCH_TRAFFIC_MAX)) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH",
                    "Invalid traffic type %d for GET", (int) traffic);
         return cps_api_ret_code_ERR;
@@ -168,14 +168,14 @@ static cps_api_return_code_t nas_process_cps_hash_get (void *context,
      * Fill in the hash fields
      */
     cps_api_object_t obj_std = create_obj_on_list(param->list,
-                                                  BASE_TRAFFIC_HASH_ENTRY_STD_HASH_FIELD);
+                                                  BASE_SWITCH_ENTRY_STD_HASH_FIELD);
     if (obj_std == NULL) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH", "GET call failed");
         return cps_api_ret_code_ERR;
     }
 
     for (ix = 0; ix < std_count ; ++ix ) {
-        cps_api_object_attr_add_u32(obj_std, BASE_TRAFFIC_HASH_ENTRY_STD_HASH_FIELD,
+        cps_api_object_attr_add_u32(obj_std, BASE_SWITCH_ENTRY_STD_HASH_FIELD,
                                     std_list[ix]);
     }
 
@@ -229,11 +229,11 @@ t_std_error nas_hash_cps_init (cps_api_operation_handle_t handle)
 
     /* Obtain a key for this object */
     if (!(cps_api_key_from_attr_with_qual(&f.key,
-                                          BASE_TRAFFIC_HASH_ENTRY_OBJ,
+                                          BASE_SWITCH_ENTRY_OBJ,
                                           cps_api_qualifier_TARGET))) {
         EV_LOGGING(NAS_L2, ERR, "NAS-HASH",
                    "Could not translate %d to key %s",
-                   (int) BASE_TRAFFIC_HASH_ENTRY,
+                   (int) BASE_SWITCH_ENTRY,
                    cps_api_key_print(&f.key, buf, sizeof(buf) - 1));
         return STD_ERR(CPSNAS, FAIL, 0);
     }
